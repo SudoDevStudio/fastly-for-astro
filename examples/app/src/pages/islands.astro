@@ -1,0 +1,17 @@
+---
+import Layout from "../components/Layout.astro";
+import DeferredGreeting from "../components/DeferredGreeting.astro";
+
+const renderedAt = new Date().toISOString();
+---
+<Layout title="Server islands — Astro × Fastly">
+  <h2>Server islands</h2>
+  <p>Page shell rendered at <time datetime={renderedAt}>{renderedAt}</time>.</p>
+  <p>The block below uses <code>server:defer</code>: the shell ships immediately, then Astro fetches the island HTML from <code>/_server-islands/...</code> and swaps it in.</p>
+
+  <DeferredGreeting name="Fastly Compute" server:defer>
+    <p slot="fallback"><em>Loading deferred island…</em></p>
+  </DeferredGreeting>
+
+  <p style="margin-top: 1.5rem;"><a href="/">← Home</a></p>
+</Layout>

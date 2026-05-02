@@ -1,0 +1,16 @@
+---
+// Mixed: the page itself is dynamic (SSR), but it pulls in a prerendered
+// fragment via fetch and combines it with per-request data.
+import Layout from "../components/Layout.astro";
+
+const renderedAt = new Date().toISOString();
+---
+<Layout title="About — Astro × Fastly">
+  <h2>About this app</h2>
+  <p>This page is dynamic, but it could pull data from a prerendered or KV-backed source. Rendered at {renderedAt}.</p>
+  <ul>
+    <li>Adapter: <code>@sudodevstudio/fastly-for-astro</code></li>
+    <li>Runtime: Fastly Compute (WebAssembly + JavaScript)</li>
+    <li>Static delivery: <code>@fastly/compute-js-static-publish</code></li>
+  </ul>
+</Layout>

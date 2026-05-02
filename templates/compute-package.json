@@ -1,0 +1,24 @@
+{
+  "name": __NAME__,
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": __DESCRIPTION__,
+  "main": "src/index.js",
+  "scripts": {
+    "build": "js-compute-runtime --module-mode --enable-experimental-top-level-await src/index.js bin/main.wasm",
+    "dev:publish": "compute-js-static-publish publish-content --local",
+    "dev:start": "fastly compute serve",
+    "fastly:publish": "compute-js-static-publish publish-content",
+    "fastly:deploy": "fastly compute publish",
+    "promote": "compute-js-static-publish collections promote"
+  },
+  "dependencies": {
+    "@fastly/js-compute": "^3.30.0",
+    "@fastly/compute-js-static-publish": "^7.0.0",
+    "@noble/ciphers": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

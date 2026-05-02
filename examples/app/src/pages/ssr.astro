@@ -1,0 +1,18 @@
+---
+import Layout from "../components/Layout.astro";
+
+// Always renders dynamically — no `prerender = true`.
+const renderedAt = new Date().toISOString();
+const userAgent = Astro.request.headers.get("user-agent") ?? "(none)";
+const requestId = Astro.locals.requestId ?? "(local)";
+---
+<Layout title="Dynamic SSR — Astro × Fastly">
+  <h2>Dynamic server-rendered page</h2>
+  <p>Rendered at <time datetime={renderedAt}>{renderedAt}</time>.</p>
+  <p>This page is generated per-request inside Fastly Compute.</p>
+  <h3>Request context</h3>
+  <pre><code>{`method:     ${Astro.request.method}
+path:       ${Astro.url.pathname}
+user-agent: ${userAgent}
+request-id: ${requestId}`}</code></pre>
+</Layout>

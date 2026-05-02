@@ -1,0 +1,9 @@
+---
+import Layout from "../components/Layout.astro";
+const path = Astro.url.pathname;
+---
+<Layout title="Not found — Astro × Fastly">
+  <h2>404 — Not found</h2>
+  <p>No route matched <code>{path}</code>.</p>
+  <p><a href="/">Go home</a></p>
+</Layout>

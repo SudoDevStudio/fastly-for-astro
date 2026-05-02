@@ -1,0 +1,18 @@
+---
+// A server-rendered island. Receives props from the parent page and renders
+// at request time. With server:defer it streams in after the initial HTML.
+interface Props {
+  name: string;
+}
+const { name } = Astro.props;
+
+// Simulate latency so deferred behaviour is observable.
+await new Promise((r) => setTimeout(r, 250));
+
+const renderedAt = new Date().toISOString();
+---
+<section style="padding: 1rem; border: 1px solid currentColor; border-radius: 0.5rem;">
+  <h3>Hello, {name} — from a server island</h3>
+  <p>Rendered server-side at <time datetime={renderedAt}>{renderedAt}</time>.</p>
+  <p>This block fetched independently from the page shell via <code>/_server-islands/</code>.</p>
+</section>

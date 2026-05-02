@@ -1,0 +1,72 @@
+{
+  "name": "@sudodevstudio/fastly-for-astro",
+  "version": "0.1.0",
+  "description": "Astro v6 adapter for Fastly Compute. Dynamic SSR, server islands, and KV-backed static assets with no app-code changes.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Maninderpreet Singh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sudodevstudio/fastly-for-astro"
+  },
+  "keywords": [
+    "astro",
+    "astro-adapter",
+    "astro-component",
+    "withastro",
+    "fastly",
+    "fastly-compute",
+    "compute",
+    "edge",
+    "ssr",
+    "server-islands"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./entrypoints/server.js": {
+      "types": "./dist/runtime/server-entry.d.ts",
+      "import": "./dist/runtime/server-entry.js"
+    },
+    "./runtime/handler": {
+      "types": "./dist/runtime/handler.d.ts",
+      "import": "./dist/runtime/handler.js"
+    },
+    "./runtime/headers": {
+      "types": "./dist/runtime/headers.d.ts",
+      "import": "./dist/runtime/headers.js"
+    },
+    "./templates/*": "./templates/*"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "docs",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "rm -rf dist",
+    "test": "node --test --test-reporter=spec test/options.test.js test/headers.test.js test/path.test.js test/crypto-polyfill.test.js test/astro-encryption.test.js"
+  },
+  "peerDependencies": {
+    "astro": "^6.0.0"
+  },
+  "dependencies": {
+    "@fastly/compute-js-static-publish": "^7.0.0",
+    "@noble/ciphers": "^2.2.0",
+    "esbuild": "^0.24.0"
+  },
+  "devDependencies": {
+    "@fastly/js-compute": "^3.30.0",
+    "@types/node": "^20.14.0",
+    "astro": "^6.0.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

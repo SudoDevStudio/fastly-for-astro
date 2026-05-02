@@ -1,0 +1,19 @@
+---
+import Layout from "../components/Layout.astro";
+---
+<Layout title="Astro on Fastly Compute">
+  <p>This is the home page of the demo Astro v6 app deployed to Fastly Compute via <code>@sudodevstudio/fastly-for-astro</code>.</p>
+  <h2>What this app demonstrates</h2>
+  <ul>
+    <li><a href="/ssr">/ssr</a> — dynamic server-rendered page</li>
+    <li><a href="/posts/hello-world">/posts/[id]</a> — dynamic route parameter</li>
+    <li><a href="/prerendered">/prerendered</a> — prerendered static HTML</li>
+    <li><a href="/about">/about</a> — mixed prerender + dynamic data</li>
+    <li><a href="/islands">/islands</a> — page using <code>server:defer</code></li>
+    <li><a href="/cookies">/cookies</a> — read + set <code>Set-Cookie</code></li>
+    <li><a href="/redirect">/redirect</a> — server redirect</li>
+    <li><a href="/missing">/missing</a> — 404 handling</li>
+    <li><a href="/api/echo">/api/echo</a> — JSON API route (GET/POST)</li>
+    <li><a href="/robots.txt">/robots.txt</a> — public asset</li>
+  </ul>
+</Layout>

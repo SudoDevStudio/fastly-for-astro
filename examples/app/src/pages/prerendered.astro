@@ -1,0 +1,12 @@
+---
+export const prerender = true;
+import Layout from "../components/Layout.astro";
+
+const builtAt = new Date().toISOString();
+---
+<Layout title="Prerendered page — Astro × Fastly">
+  <h2>Prerendered page</h2>
+  <p>This page is rendered at <strong>build time</strong> and shipped as static HTML to Fastly's KV store.</p>
+  <p>Built at: <time datetime={builtAt}>{builtAt}</time></p>
+  <p>It does not invoke SSR per request — the static publisher serves it directly.</p>
+</Layout>
