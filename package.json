@@ -49,6 +49,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
+    "lint": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist",
     "test": "node --test --test-reporter=spec test/options.test.js test/headers.test.js test/path.test.js test/crypto-polyfill.test.js test/astro-encryption.test.js"
   },
