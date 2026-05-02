@@ -7,7 +7,6 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-
     "fastly:install": "cd dist/fastly && npm install",
     "fastly:wasm": "cd dist/fastly && npm run build",
     "fastly:serve:dist": "cd dist/fastly && npx @fastly/compute-js-static-publish publish-content --local && fastly compute serve",
@@ -22,7 +21,7 @@
     "fastly:logs": "cd dist/fastly && fastly log-tail"
   },
   "dependencies": {
-    "@sudodevstudio/fastly-for-astro": "*",
+    "@sudodevstudio/fastly-for-astro": "^0.5.0",
     "astro": "^6.0.0"
   }
 }
