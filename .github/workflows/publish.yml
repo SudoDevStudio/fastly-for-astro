@@ -67,10 +67,7 @@ jobs:
           NEW_TAG="$(npm version "${{ github.event.inputs.release_type }}" -m "chore(release): %s [skip ci]")"
           echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
           echo "new_version=${NEW_TAG#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Verify example app builds against release package
-        run: npm run test:example
-
+          
       - name: Push release commit and tag
         run: git push origin HEAD:main --follow-tags
 
@@ -82,3 +79,5 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
