@@ -40,7 +40,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22.22.2
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -67,6 +67,9 @@ jobs:
           NEW_TAG="$(npm version "${{ github.event.inputs.release_type }}" -m "chore(release): %s [skip ci]")"
           echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
           echo "new_version=${NEW_TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify example app builds against release package
+        run: npm run test:example
 
       - name: Push release commit and tag
         run: git push origin HEAD:main --follow-tags

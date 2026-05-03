@@ -28,6 +28,11 @@ const RESOLVED_VIRTUAL_RUNTIME_CONFIG = "\0" + VIRTUAL_RUNTIME_CONFIG;
 //    throws at runtime, which breaks Astro's `sanitizeParams` for any
 //    dynamic route. We replace it with an identity function — Unicode
 //    normalization is unnecessary for URL params on this platform.
+//
+// 3. Some transitive toolchain/runtime modules assume worker-style globals
+//    like MessageChannel / MessagePort exist. Fastly may omit them, so install
+//    a minimal in-memory implementation to avoid ReferenceErrors during module
+//    initialization.
 const WIZER_GLOBALS_SHIM = `
 if (typeof String.prototype.normalize !== "function" || (function(){
   try { "a".normalize(); return false; } catch (_) { return true; }
@@ -59,6 +64,70 @@ if (typeof globalThis.Intl === "undefined") {
     Locale: class { constructor(t){ this.baseName = String(t || "en-US"); } toString(){ return this.baseName; } },
     getCanonicalLocales: (t) => Array.isArray(t) ? t.map(String) : (t ? [String(t)] : []),
     supportedValuesOf: () => [],
+  };
+}
+if (typeof globalThis.MessagePort === "undefined") {
+  class _StubMessagePort {
+    constructor() {
+      this.onmessage = null;
+      this.onmessageerror = null;
+      this._peer = null;
+      this._started = false;
+      this._queue = [];
+      this._listeners = new Map();
+    }
+    postMessage(value) {
+      if (!this._peer) return;
+      const event = { data: value, ports: [], target: this._peer, type: "message" };
+      this._peer._dispatch(event);
+    }
+    start() {
+      this._started = true;
+      while (this._queue.length) {
+        this._emit(this._queue.shift());
+      }
+    }
+    close() {
+      this._peer = null;
+      this._queue.length = 0;
+    }
+    addEventListener(type, listener) {
+      if (!this._listeners.has(type)) this._listeners.set(type, []);
+      this._listeners.get(type).push(listener);
+    }
+    removeEventListener(type, listener) {
+      const listeners = this._listeners.get(type);
+      if (!listeners) return;
+      const index = listeners.indexOf(listener);
+      if (index >= 0) listeners.splice(index, 1);
+    }
+    dispatchEvent(event) {
+      this._dispatch(event);
+      return true;
+    }
+    _dispatch(event) {
+      if (this._started || this.onmessage || (this._listeners.get("message") || []).length) {
+        this._emit(event);
+      } else {
+        this._queue.push(event);
+      }
+    }
+    _emit(event) {
+      if (typeof this.onmessage === "function") this.onmessage(event);
+      const listeners = this._listeners.get("message") || [];
+      for (const listener of listeners) listener.call(this, event);
+    }
+  }
+  globalThis.MessagePort = _StubMessagePort;
+}
+if (typeof globalThis.MessageChannel === "undefined") {
+  globalThis.MessageChannel = class MessageChannel {
+    constructor() {
+      this.port1 = new globalThis.MessagePort();
+      this.port2 = new globalThis.MessagePort();
+      this.port1._peer = this.port2;
+      this.port2._peer = this.port1;
+    }
   };
 }
 if (typeof globalThis.WebAssembly === "undefined") {

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 20+ (validated in CI on Node.js 20.19.0 and 22.22.2)
 - The [Fastly CLI](https://www.fastly.com/documentation/reference/tools/cli/)
 - A Fastly account with permission to create Compute services and KV stores
 

@@ -23,5 +23,8 @@
   "dependencies": {
     "@sudodevstudio/fastly-for-astro": "^0.5.0",
     "astro": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
