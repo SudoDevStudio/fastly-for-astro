@@ -1,6 +1,6 @@
 {
   "name": "@sudodevstudio/fastly-for-astro",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Astro v6 adapter for Fastly Compute. Dynamic SSR, server islands, and KV-backed static assets with no app-code changes.",
   "type": "module",
   "license": "MIT",
