@@ -20,7 +20,85 @@ import rc from "../static-publish.rc.js";
 // that re-installs only when needed.
 import { installCryptoPolyfill, ensureCryptoPolyfill } from "./crypto-polyfill.js";
 installCryptoPolyfill();
-import { handle as astroHandle } from __SERVER_ENTRY_IMPORT__;
+
+function installMessageChannelShim() {
+  if (typeof globalThis.MessagePort === "undefined") {
+    class StubMessagePort {
+      constructor() {
+        this.onmessage = null;
+        this.onmessageerror = null;
+        this._peer = null;
+        this._started = false;
+        this._queue = [];
+        this._listeners = new Map();
+      }
+
+      postMessage(value) {
+        if (!this._peer) return;
+        const event = { data: value, ports: [], target: this._peer, type: "message" };
+        this._peer._dispatch(event);
+      }
+
+      start() {
+        this._started = true;
+        while (this._queue.length) this._emit(this._queue.shift());
+      }
+
+      close() {
+        this._peer = null;
+        this._queue.length = 0;
+      }
+
+      addEventListener(type, listener) {
+        if (!this._listeners.has(type)) this._listeners.set(type, []);
+        this._listeners.get(type).push(listener);
+      }
+
+      removeEventListener(type, listener) {
+        const listeners = this._listeners.get(type);
+        if (!listeners) return;
+        const index = listeners.indexOf(listener);
+        if (index >= 0) listeners.splice(index, 1);
+      }
+
+      dispatchEvent(event) {
+        this._dispatch(event);
+        return true;
+      }
+
+      _dispatch(event) {
+        if (this._started || this.onmessage || (this._listeners.get("message") || []).length) {
+          this._emit(event);
+        } else {
+          this._queue.push(event);
+        }
+      }
+
+      _emit(event) {
+        if (typeof this.onmessage === "function") this.onmessage(event);
+        const listeners = this._listeners.get("message") || [];
+        for (const listener of listeners) listener.call(this, event);
+      }
+    }
+
+    globalThis.MessagePort = StubMessagePort;
+  }
+
+  if (typeof globalThis.MessageChannel === "undefined") {
+    globalThis.MessageChannel = class MessageChannel {
+      constructor() {
+        this.port1 = new globalThis.MessagePort();
+        this.port2 = new globalThis.MessagePort();
+        this.port1._peer = this.port2;
+        this.port2._peer = this.port1;
+      }
+    };
+  }
+}
+
+installMessageChannelShim();
+
+const { handle: astroHandle } = await import(__SERVER_ENTRY_IMPORT__);
 
 const publisherServer = PublisherServer.fromStaticPublishRc(rc);
 const ASSETS_PREFIX = __ASSETS_PREFIX__;

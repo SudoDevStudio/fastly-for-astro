@@ -10,7 +10,7 @@ import runtimeConfig from "virtual:fastly-for-astro/runtime-config";
  * generated SSR manifest and re-exports whatever we return from `entry.mjs`.
  */
 export function createExports(manifest: SSRManifest) {
-  const app = new App(manifest);
+  const app = new App(manifest, runtimeConfig.runtime.streaming);
   const handle = createHandler({ app, config: runtimeConfig });
 
   return {

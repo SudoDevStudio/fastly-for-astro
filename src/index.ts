@@ -33,6 +33,9 @@ const RESOLVED_VIRTUAL_RUNTIME_CONFIG = "\0" + VIRTUAL_RUNTIME_CONFIG;
 //    like MessageChannel / MessagePort exist. Fastly may omit them, so install
 //    a minimal in-memory implementation to avoid ReferenceErrors during module
 //    initialization.
+//
+// 4. Astro uses URL.canParse() in asset-link generation for hydrated islands,
+//    but Fastly's runtime may not implement it yet.
 const WIZER_GLOBALS_SHIM = `
 if (typeof String.prototype.normalize !== "function" || (function(){
   try { "a".normalize(); return false; } catch (_) { return true; }
@@ -64,6 +67,16 @@ if (typeof globalThis.Intl === "undefined") {
     Locale: class { constructor(t){ this.baseName = String(t || "en-US"); } toString(){ return this.baseName; } },
     getCanonicalLocales: (t) => Array.isArray(t) ? t.map(String) : (t ? [String(t)] : []),
     supportedValuesOf: () => [],
+  };
+}
+if (typeof URL !== "undefined" && typeof URL.canParse !== "function") {
+  URL.canParse = function canParse(url, base) {
+    try {
+      new URL(url, base);
+      return true;
+    } catch (_) {
+      return false;
+    }
   };
 }
 if (typeof globalThis.MessagePort === "undefined") {
@@ -270,6 +283,11 @@ export default function fastlyComputeAdapter(
             },
             resolve: {
               alias: [
+                // React's browser worker server renderer touches MessageChannel
+                // during module initialization, which breaks Wizer snapshotting
+                // on Fastly Compute. Force the edge renderer variants instead.
+                { find: "react-dom/server", replacement: "react-dom/server.edge" },
+                { find: "react-dom/static", replacement: "react-dom/static.edge" },
                 // es-module-lexer initializes WebAssembly at module load,
                 // which trips Fastly Compute's Wizer pre-initializer. The
                 // SSR bundle only imports it for side effects — replace

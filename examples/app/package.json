@@ -21,8 +21,11 @@
     "fastly:logs": "cd dist/fastly && fastly log-tail"
   },
   "dependencies": {
-    "@sudodevstudio/fastly-for-astro": "^0.5.0",
-    "astro": "^6.0.0"
+    "@astrojs/react": "^4.3.1",
+    "@sudodevstudio/fastly-for-astro": "file:../..",
+    "astro": "^6.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "engines": {
     "node": ">=20.0.0"
