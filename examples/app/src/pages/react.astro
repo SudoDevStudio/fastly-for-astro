@@ -1,0 +1,24 @@
+---
+import Layout from "../components/Layout.astro";
+import RequestSnapshot from "../components/react/RequestSnapshot.tsx";
+import Counter from "../components/react/Counter.tsx";
+
+const renderedAt = new Date().toISOString();
+const requestId = Astro.locals.requestId ?? "(local)";
+---
+<Layout title="React components — Astro × Fastly">
+  <h2>React in the example app</h2>
+  <p>
+    This page demonstrates both server-rendered and client-hydrated React
+    components running inside the Astro example app on Fastly Compute.
+  </p>
+
+  <RequestSnapshot
+    method={Astro.request.method}
+    path={Astro.url.pathname}
+    requestId={requestId}
+    renderedAt={renderedAt}
+  />
+
+  <Counter client:load initialCount={3} />
+</Layout>

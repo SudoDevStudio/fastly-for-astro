@@ -26,7 +26,7 @@ export default defineConfig({
       serverTiming: true,
     },
     runtime: {
-      streaming: false,
+      streaming: true,
     },
   }),
 });
