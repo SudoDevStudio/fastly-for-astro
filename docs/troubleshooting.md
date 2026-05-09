@@ -116,6 +116,56 @@ The adapter forces `image.service: { entrypoint: "astro/assets/services/noop" }`
 
 These come from Fastly Compute's **Wizer pre-initializer** running the SSR bundle's top-level code in a snapshot environment that lacks `Intl` and `WebAssembly`. The adapter injects shims via Vite's `output.intro` to keep module init from trapping. If you see this error after upgrading Astro and a new top-level API is missing (e.g. `Atomics`, `SharedArrayBuffer`), open an issue — the shim list lives in `WIZER_GLOBALS_SHIM` inside `src/index.ts`.
 
+## `js-compute-runtime` fails with `ReferenceError: MessageChannel is not defined`
+
+This usually shows up once React SSR or another worker-oriented dependency is present. Fastly's runtime can lack `MessageChannel` / `MessagePort` during Wizer initialization, and React's browser worker server renderer can touch them at module load.
+
+The adapter handles this in two places:
+
+- a minimal `MessageChannel` / `MessagePort` shim is installed before the SSR bundle loads
+- the generated Compute entry dynamically imports `dist/server/entry.mjs` after installing that shim
+
+If you still hit this after upgrading, rebuild from scratch:
+
+```bash
+rm -rf dist
+astro build
+cd dist/fastly
+npm install
+npm run build
+```
+
+If the stack still points into `react-dom-server.browser`, include it in a bug report — that means a dependency resolution path has regressed.
+
+## React page returns 500 and logs `splitAssetPath` / `createAssetLink`
+
+This usually means the runtime is missing `URL.canParse()`, which Astro uses when generating hydration asset URLs for client components.
+
+The adapter now polyfills `URL.canParse()` in the SSR bootstrap shim. Rebuild the project so the generated SSR bundle picks that up:
+
+```bash
+rm -rf dist
+astro build
+```
+
+If the failure is specifically on a client-hydrated framework component, confirm the generated server bundle contains `URL.canParse` callsites plus the adapter shim near the top of `dist/server/entry.mjs`.
+
+## `/react` or other hydrated pages fail with `ERR_INCOMPLETE_CHUNKED_ENCODING`
+
+This means the response stream failed after headers were already sent. The most common causes on Fastly are:
+
+- a runtime compatibility issue during hydration script generation
+- a thrown error from a streamed SSR response after the first chunk flushed
+
+Check Fastly logs for the real server-side exception first — the browser error is only the symptom.
+
+If you're debugging this with the bundled example app:
+
+- `/react` demonstrates Astro React with one server-rendered component and one `client:load` component
+- `runtime.streaming` can be toggled in [`examples/app/astro.config.ts`](../examples/app/astro.config.ts) to compare buffered vs streamed page output
+
+Note that Astro's React server integration may still buffer component HTML internally even when page streaming is enabled. So page-level streaming and React component-level streaming are not always the same thing.
+
 ## Build prints `Promise rejected but never handled: ({})`
 
 Cosmetic. Some async work in Astro's manifest loader runs at module-init time. Wizer reports the orphan rejection but the build still succeeds (exit 0) and `bin/main.wasm` is produced. Run `ls -la bin/` to confirm. If `main.wasm` is missing or zero bytes, that's a real failure — paste the full output into an issue.

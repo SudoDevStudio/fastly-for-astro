@@ -21,13 +21,13 @@
 astro build
   │
   ├── astro:config:setup    ← adapter registers Vite plugin (virtual:runtime-config),
-  │                           sets ssr.target = "webworker", noExternal for SDK
+  │                           sets ssr.target = "webworker", noExternal for SDK,
+  │                           installs Fastly runtime shims/aliases
   ├── astro:config:done     ← adapter calls setAdapter(...)
-  │                           (entrypointResolution defaults to "auto" in v6)
   ├── (Astro builds client)
   ├── (Astro builds server)
   │     serverEntrypoint = "@sudodevstudio/fastly-for-astro/entrypoints/server.js"
-  │     produces dist/server/entry.mjs with manifest bound
+  │     produces dist/server/entry.mjs with manifest + runtime config bound
   └── astro:build:done      ← adapter generates dist/fastly/:
                                 src/index.js               (Compute fetch listener)
                                 static-publish.rc.js       (KV store config)
@@ -46,6 +46,7 @@ astro build
    - Reconstructs a normalized URL (forwarded host/proto handling, path normalization).
    - Calls `app.match(request)` and `app.render(request, { routeData, locals })`.
    - For `/_server-islands/*` requests, the static publisher is bypassed entirely so islands always go through SSR.
+   - Honors `runtime.streaming` when constructing Astro's `App`.
 5. The response is post-processed:
    - Classified as `static-asset | html | api | island | redirect | error`.
    - `Cache-Control` is set per-class (configurable). Cookie-bearing or `Set-Cookie` responses are not cached unless explicitly opted in.
@@ -62,4 +63,4 @@ The Fastly Compute JS runtime is closer to a Worker/edge environment than a Node
 
 ## Manifest binding
 
-In v6, Astro's recommended pattern is `entrypointResolution: "auto"`. Our `serverEntrypoint` exports `createExports(manifest)` which constructs `new App(manifest)` and returns `{ default: handle, handle, app }`. Astro's build step bundles this together with the generated SSR manifest into `dist/server/entry.mjs`, so the Compute entry just imports `handle` and is done.
+Our `serverEntrypoint` exports `createExports(manifest)`, constructs `new App(manifest, runtimeConfig.runtime.streaming)`, and returns `{ default: handle, handle, app }`. The generated Compute entry installs Fastly compatibility shims first, then dynamically imports `dist/server/entry.mjs` so React/Astro SSR can initialize safely under Wizer.

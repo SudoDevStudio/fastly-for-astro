@@ -48,12 +48,19 @@ astro build
 # Local Fastly Compute dev server from the generated app
 cd dist/fastly
 npm install
-npm run dev
+npm run dev:publish
+npm run dev:start
 
 # Deploy to Fastly
-npm run deploy
-npm run publish
+npm run fastly:deploy
+npm run fastly:publish -- --collection-name=live
 ```
+
+The bundled example app in [`examples/app`](./examples/app) also includes Astro React integration with:
+
+- a server-rendered React component at [`src/components/react/RequestSnapshot.tsx`](./examples/app/src/components/react/RequestSnapshot.tsx)
+- a client-hydrated React component at [`src/components/react/Counter.tsx`](./examples/app/src/components/react/Counter.tsx)
+- a demo page at [`/react`](./examples/app/src/pages/react.astro)
 
 ## Docs
 
