@@ -78,6 +78,13 @@ export async function generateComputeApp(args: GenerateArgs): Promise<void> {
     {
       NAME: JSON.stringify(`${options.name}-compute`),
       DESCRIPTION: JSON.stringify(options.description),
+      BUILD_FLAGS: JSON.stringify(
+        [
+          "--module-mode",
+          "--enable-experimental-top-level-await",
+          ...(options.aot ? ["--enable-aot"] : []),
+        ].join(" "),
+      ),
     },
   );
 
@@ -142,17 +149,18 @@ You do not need any special project structure or custom build pipeline for gener
 
 \`\`\`bash
 npm install
-npm run dev
+npm run dev:publish
+npm run dev:start
 \`\`\`
 
 ## Deploy
 
 \`\`\`bash
-npm run deploy
-npm run publish
+npm run fastly:deploy
+npm run fastly:publish -- --collection-name=${options.staticCollection}
 \`\`\`
 
-## Files
+${options.aot ? "AOT compilation is enabled for this generated Compute app via `js-compute-runtime --enable-aot`.\n\n" : ""}## Files
 
 - \`src/index.js\` — Compute fetch handler. Tries the static publisher first, falls back to Astro SSR.
 - \`static-publish.rc.js\` — KV store + collection config (compiled into the Wasm).

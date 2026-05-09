@@ -6,7 +6,7 @@
   "description": __DESCRIPTION__,
   "main": "src/index.js",
   "scripts": {
-    "build": "js-compute-runtime --module-mode --enable-experimental-top-level-await src/index.js bin/main.wasm",
+    "build": "js-compute-runtime __BUILD_FLAGS__ src/index.js bin/main.wasm",
     "dev:publish": "compute-js-static-publish publish-content --local",
     "dev:start": "fastly compute serve",
     "fastly:publish": "compute-js-static-publish publish-content",

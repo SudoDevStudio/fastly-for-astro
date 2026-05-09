@@ -20,6 +20,7 @@ import fastlyCompute from "@sudodevstudio/fastly-for-astro";
 export default defineConfig({
   output: "server",
   adapter: fastlyCompute({
+    aot: true,
     kvStoreName: "astro-site-content",
     staticCollection: "live",
     assetsPrefix: "/_astro/",
@@ -61,6 +62,8 @@ The bundled example app in [`examples/app`](./examples/app) also includes Astro 
 - a server-rendered React component at [`src/components/react/RequestSnapshot.tsx`](./examples/app/src/components/react/RequestSnapshot.tsx)
 - a client-hydrated React component at [`src/components/react/Counter.tsx`](./examples/app/src/components/react/Counter.tsx)
 - a demo page at [`/react`](./examples/app/src/pages/react.astro)
+
+If you want Fastly's Ahead-of-Time compiler optimizations in the generated Compute app, set `aot: true` in the adapter config. That adds `--enable-aot` to the generated `dist/fastly/package.json` build script.
 
 ## Docs
 

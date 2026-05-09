@@ -43,6 +43,7 @@ export interface FastlyComputeAdapterOptions {
   name?: string;
   description?: string;
   author?: string;
+  aot?: boolean;
   kvStoreName?: string;
   staticCollection?: string;
   staticPublisherWorkingDir?: string;
@@ -62,6 +63,7 @@ export interface ResolvedAdapterOptions {
   name: string;
   description: string;
   author: string;
+  aot: boolean;
   kvStoreName: string;
   staticCollection: string;
   staticPublisherWorkingDir: string;
@@ -134,6 +136,7 @@ export function resolveOptions(
     name: o.name ?? "astro-fastly-app",
     description: o.description ?? "Astro app on Fastly Compute",
     author: o.author ?? "",
+    aot: o.aot ?? false,
     kvStoreName: o.kvStoreName ?? "astro-site-content",
     staticCollection: o.staticCollection ?? "live",
     staticPublisherWorkingDir: o.staticPublisherWorkingDir ?? "./.static-publisher",

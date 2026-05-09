@@ -4,6 +4,7 @@ import { resolveOptions } from "../dist/options.js";
 
 test("defaults: no options yields safe defaults", () => {
   const o = resolveOptions(undefined);
+  assert.equal(o.aot, false);
   assert.equal(o.kvStoreName, "astro-site-content");
   assert.equal(o.staticCollection, "live");
   assert.equal(o.assetsPrefix, "/_astro/");
@@ -49,4 +50,9 @@ test("securityHeaders: object merges with defaults", () => {
   assert.notEqual(o.securityHeaders, false);
   assert.equal(o.securityHeaders.contentSecurityPolicy, "default-src 'self'");
   assert.equal(o.securityHeaders.contentTypeOptions, true); // default preserved
+});
+
+test("aot: opt-in is preserved", () => {
+  const o = resolveOptions({ aot: true });
+  assert.equal(o.aot, true);
 });

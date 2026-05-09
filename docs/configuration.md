@@ -18,6 +18,7 @@ export default defineConfig({
 | `name` | `string` | `"astro-fastly-app"` | Service / Compute app name. Written to `fastly.toml`. |
 | `description` | `string` | `"Astro app on Fastly Compute"` | Description for the Compute app. |
 | `author` | `string` | `""` | Author for the Compute app. |
+| `aot` | `boolean` | `false` | Adds `--enable-aot` to the generated Fastly Compute build script. |
 | `serviceId` | `string` | `""` | Existing Fastly service ID. Empty string lets the CLI create one. |
 | `kvStoreName` | `string` | `"astro-site-content"` | KV store used by the static publisher. Validated to `[a-zA-Z0-9_-]+`. |
 | `staticCollection` | `string` | `"live"` | Default collection name. |
@@ -26,6 +27,16 @@ export default defineConfig({
 | `assetsPrefix` | `string` | `"/_astro/"` | Path prefix for hashed assets. Must start with `/`. |
 | `publicDir` | `string` | `"public"` | Directory copied verbatim. |
 | `compression` | `boolean` | `true` | When true, `br` and `gzip` variants are precomputed and stored in KV. |
+
+## Fastly build
+
+```ts
+fastlyCompute({
+  aot: true, // enables js-compute-runtime --enable-aot in dist/fastly/package.json
+});
+```
+
+This affects the generated Compute app build in `dist/fastly`, not Astro's own `astro build` step.
 
 ## Security headers
 
