@@ -1,7 +1,7 @@
 // Polyfill for crypto.subtle.encrypt / decrypt with AES-GCM on Fastly
 // Compute. The platform's SubtleCrypto implementation supports digest, sign,
 // verify, and importKey (HMAC/RSA/ECDSA) — but not encrypt/decrypt for any
-// algorithm, and not importKey for AES-GCM. Astro v6 uses AES-GCM to encrypt
+// algorithm, and not importKey for AES-GCM. Astro v6/v7 use AES-GCM to encrypt
 // server-island props, so without this polyfill, every page using
 // `server:defer` returns 500 ("Supplied algorithm is not yet supported").
 //

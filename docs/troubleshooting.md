@@ -24,9 +24,21 @@ dist/
 
 If you moved files, update the import path or re-run `astro build`.
 
+## `js-compute-runtime` fails with `Could not resolve "node:stream"`
+
+Seen on Astro v7 with `@astrojs/react`, which keeps a Node-only
+`renderToPipeableStream` fallback behind a dynamic `import("node:stream")`.
+Astro v6's Rollup left the specifier in a variable; v7's Rolldown folds it into
+a literal that esbuild then tries to resolve, and the Wasm build dies before it
+starts.
+
+Adapter releases after 0.14.0 rewrite that import to a shim. If you hit this,
+upgrade the adapter — the fallback is dead code here anyway, since
+`react-dom/server` is aliased to `react-dom/server.edge`.
+
 ## "Module ... has no exported member 'createApp'" / TypeScript errors in the adapter
 
-You're on a pre-v6 Astro version. The adapter requires `astro@^6.0.0`. Check `node_modules/astro/package.json`.
+You're on a pre-v6 Astro version. The adapter requires `astro@^6.0.0 || ^7.0.0`. Check `node_modules/astro/package.json`.
 
 ## "Settings not found. You may need to publish your application."
 
@@ -63,7 +75,7 @@ Astro's `sanitizeParams` calls `String.prototype.normalize()`. Fastly Compute's 
 
 ## Server islands return 500 with `Supplied algorithm is not yet supported`
 
-Astro v6 encrypts server-island props with **AES-GCM**. Fastly Compute's `SubtleCrypto` implements `digest`, `sign`, `verify`, and `importKey` (HMAC/RSA/ECDSA), but **not** `encrypt`/`decrypt`. The adapter ships a pure-JS AES-GCM polyfill (`crypto-polyfill.js`) that backs `crypto.subtle.encrypt/decrypt` via [@noble/ciphers](https://github.com/paulmillr/noble-ciphers). It's installed at the top of `dist/fastly/src/index.js` before the SSR bundle's first request runs.
+Astro v6 and v7 encrypt server-island props with **AES-GCM** (v7 additionally binds each ciphertext to an authenticated context such as `props:<ComponentId>`). Fastly Compute's `SubtleCrypto` implements `digest`, `sign`, `verify`, and `importKey` (HMAC/RSA/ECDSA), but **not** `encrypt`/`decrypt`. The adapter ships a pure-JS AES-GCM polyfill (`crypto-polyfill.js`) that backs `crypto.subtle.encrypt/decrypt` via [@noble/ciphers](https://github.com/paulmillr/noble-ciphers). It's installed at the top of `dist/fastly/src/index.js` before the SSR bundle's first request runs.
 
 If you see this error, check that:
 - `dist/fastly/src/crypto-polyfill.js` exists (regenerate with `astro build`)

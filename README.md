@@ -1,6 +1,6 @@
 # @sudodevstudio/fastly-for-astro
 
-Astro v6 adapter for Fastly Compute. Dynamic SSR, server islands, and KV-backed static assets — without requiring any changes to your Astro app code.
+Astro v6 / v7 adapter for Fastly Compute. Dynamic SSR, server islands, and KV-backed static assets — without requiring any changes to your Astro app code.
 
 ## Install
 

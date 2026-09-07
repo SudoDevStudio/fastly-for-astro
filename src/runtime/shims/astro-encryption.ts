@@ -1,6 +1,6 @@
 // Build-time replacement for `astro/dist/core/encryption.js`.
 //
-// Astro v6 encrypts server-island props with AES-GCM via crypto.subtle.
+// Astro v6/v7 encrypt server-island props with AES-GCM via crypto.subtle.
 // Fastly Compute's SubtleCrypto doesn't implement encrypt/decrypt for any
 // algorithm, and patching crypto.subtle from JS is fragile (the host
 // re-binds it at runtime). Instead, the adapter aliases Astro's encryption
@@ -12,7 +12,13 @@
 // If Astro's encryption module changes shape across versions, this shim
 // must change with it.
 
-import { decodeBase64, decodeHex, encodeBase64, encodeHexUpperCase } from "@oslojs/encoding";
+import {
+  decodeBase64,
+  decodeHex,
+  encodeBase64,
+  encodeHexLowerCase,
+  encodeHexUpperCase,
+} from "@oslojs/encoding";
 import { gcm } from "@noble/ciphers/aes.js";
 
 // Inlined from astro/dist/core/csp/config.js (not exported via Astro's public
@@ -65,22 +71,40 @@ export async function decodeKey(encoded: string): Promise<AesGcmKey> {
   return { __astroFastlyAesGcmKey: true, raw };
 }
 
-export async function encryptString(key: AesGcmKey, raw: string): Promise<string> {
+/**
+ * `additionalData` is the AES-GCM authenticated-context string Astro v7 binds
+ * server-island ciphertext to (`props:<componentId>`, `slots:<componentId>`,
+ * …). It is authenticated but not stored in the ciphertext, so encrypt and
+ * decrypt must be given the same value. Astro v6 never passes it.
+ */
+function toAad(additionalData?: string): Uint8Array | undefined {
+  return additionalData ? encoder.encode(additionalData) : undefined;
+}
+
+export async function encryptString(
+  key: AesGcmKey,
+  raw: string,
+  additionalData?: string,
+): Promise<string> {
   if (!isAesGcmKey(key)) throw new TypeError("encryptString: not an AES-GCM key from this shim");
   const iv = new Uint8Array(IV_BYTES);
   crypto.getRandomValues(iv);
   const data = encoder.encode(raw);
-  const ciphertext = gcm(key.raw, iv).encrypt(data);
+  const ciphertext = gcm(key.raw, iv, toAad(additionalData)).encrypt(data);
   return encodeHexUpperCase(iv) + encodeBase64(ciphertext);
 }
 
-export async function decryptString(key: AesGcmKey, encoded: string): Promise<string> {
+export async function decryptString(
+  key: AesGcmKey,
+  encoded: string,
+  additionalData?: string,
+): Promise<string> {
   if (!isAesGcmKey(key)) throw new TypeError("decryptString: not an AES-GCM key from this shim");
   const iv = decodeHex(encoded.slice(0, IV_HEX_LENGTH));
   const dataArray = decodeBase64(encoded.slice(IV_HEX_LENGTH));
   const ivBytes = iv instanceof Uint8Array ? iv : new Uint8Array(iv);
   const ciphertext = dataArray instanceof Uint8Array ? dataArray : new Uint8Array(dataArray);
-  const plaintext = gcm(key.raw, ivBytes).decrypt(ciphertext);
+  const plaintext = gcm(key.raw, ivBytes, toAad(additionalData)).decrypt(ciphertext);
   return decoder.decode(plaintext);
 }
 
@@ -104,6 +128,21 @@ export async function getEnvironmentKey(): Promise<AesGcmKey> {
     throw new Error("There is no environment key defined.");
   }
   return decodeKey(getEncodedEnvironmentKey());
+}
+
+/**
+ * Astro v7 hashes the server-island key to detect key changes between builds
+ * (incremental build cache). Hashing IS available on Fastly Compute, so this
+ * only has to bridge our plain-object key to the same hex digest.
+ */
+export async function hashCryptoKey(key: AesGcmKey): Promise<string> {
+  if (!isAesGcmKey(key)) throw new TypeError("hashCryptoKey: not an AES-GCM key from this shim");
+  // Copy into a plain ArrayBuffer-backed view — `digest()` rejects views that
+  // may sit on a SharedArrayBuffer.
+  const bytes = new Uint8Array(key.raw.length);
+  bytes.set(key.raw);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return encodeHexLowerCase(new Uint8Array(digest));
 }
 
 export async function generateCspDigest(data: string, algorithm: string): Promise<string> {
