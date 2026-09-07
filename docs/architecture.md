@@ -61,6 +61,18 @@ The static publisher serves bytes from KV at the edge — very fast and cheap. S
 
 The Fastly Compute JS runtime is closer to a Worker/edge environment than a Node.js server. Setting Vite's SSR target to `webworker` produces output without Node-only globals (`process.env`, `Buffer`, etc.) and prefers Web Streams.
 
+## Build-time module swaps
+
+Three modules cannot survive into the Compute Wasm as written, so the adapter replaces them during the SSR build:
+
+| Module | Why | Replacement |
+| --- | --- | --- |
+| `astro/dist/core/encryption.js` | Uses `crypto.subtle.encrypt`/`decrypt`, which Fastly Compute does not implement | Pure-JS AES-GCM via [@noble/ciphers](https://github.com/paulmillr/noble-ciphers), including Astro v7's authenticated-context (`additionalData`) argument |
+| `es-module-lexer` | Initializes WebAssembly at module load, which trips Wizer pre-initialization | No-op shim — the runtime never parses ES modules |
+| `node:stream` | `@astrojs/react` guards a Node-only `renderToPipeableStream` fallback behind `import("node:stream")`. Astro v7's Rolldown constant-folds the specifier into a literal, so `js-compute-runtime`'s esbuild pass fails with `Could not resolve "node:stream"` | Throwing shim. The fallback is unreachable because `react-dom/server` is aliased to `react-dom/server.edge`, whose `renderToReadableStream` wins |
+
+The `node:stream` import is marked `/* @vite-ignore */` upstream, so `resolve.alias` never sees it — the adapter rewrites the import at the source level instead.
+
 ## Manifest binding
 
 Our `serverEntrypoint` exports `createExports(manifest)`, constructs `new App(manifest, runtimeConfig.runtime.streaming)`, and returns `{ default: handle, handle, app }`. The generated Compute entry installs Fastly compatibility shims first, then dynamically imports `dist/server/entry.mjs` so React/Astro SSR can initialize safely under Wizer.

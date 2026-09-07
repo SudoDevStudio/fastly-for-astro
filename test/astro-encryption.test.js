@@ -13,6 +13,7 @@ const {
   encryptString,
   decryptString,
   generateContentHash,
+  hashCryptoKey,
 } = await import("../dist/runtime/shims/astro-encryption.js");
 
 test("encryption shim: createKey + encodeKey + decodeKey round trip", async () => {
@@ -65,6 +66,36 @@ test("encryption shim: decodeKey accepts a base64-encoded raw key (Astro's manif
   const cipher = await encryptString(k1, "round-trip across encode/decode");
   const out = await decryptString(k2, cipher);
   assert.equal(out, "round-trip across encode/decode");
+});
+
+test("encryption shim: additionalData is authenticated (Astro v7 server islands)", async () => {
+  const key = await createKey();
+  const cipher = await encryptString(key, "island props", "props:Greeting");
+
+  // Same context decrypts.
+  assert.equal(await decryptString(key, cipher, "props:Greeting"), "island props");
+
+  // A different context — another component, or the slots field of the same
+  // component — must not. This is what stops ciphertext from being replayed
+  // across islands.
+  await assert.rejects(decryptString(key, cipher, "props:Other"));
+  await assert.rejects(decryptString(key, cipher, "slots:Greeting"));
+  await assert.rejects(decryptString(key, cipher));
+});
+
+test("encryption shim: no additionalData still round-trips (Astro v6)", async () => {
+  const key = await createKey();
+  const cipher = await encryptString(key, "plain");
+  assert.equal(await decryptString(key, cipher), "plain");
+  await assert.rejects(decryptString(key, cipher, "props:Greeting"));
+});
+
+test("encryption shim: hashCryptoKey is a stable lowercase hex SHA-256", async () => {
+  const key = await createKey();
+  const hash = await hashCryptoKey(key);
+  assert.match(hash, /^[0-9a-f]{64}$/);
+  assert.equal(hash, await hashCryptoKey(await decodeKey(await encodeKey(key))));
+  assert.notEqual(hash, await hashCryptoKey(await createKey()));
 });
 
 test("encryption shim: generateContentHash returns SHA-256 base64", async () => {

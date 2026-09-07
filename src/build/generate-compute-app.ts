@@ -78,7 +78,10 @@ export async function generateComputeApp(args: GenerateArgs): Promise<void> {
     {
       NAME: JSON.stringify(`${options.name}-compute`),
       DESCRIPTION: JSON.stringify(options.description),
-      BUILD_FLAGS: JSON.stringify(
+      // `__BUILD_FLAGS__` sits inside an already-quoted JSON string in the
+      // template, so this is escaped for a string body — not wrapped in
+      // quotes of its own, which would produce invalid JSON.
+      BUILD_FLAGS: jsonStringBody(
         [
           "--module-mode",
           "--enable-experimental-top-level-await",
@@ -126,6 +129,11 @@ async function writeFromTemplate(
   await writeFile(outputPath, out, "utf-8");
 }
 
+/** JSON-escapes a value for interpolation *inside* an existing JSON string. */
+function jsonStringBody(value: string): string {
+  return JSON.stringify(value).slice(1, -1);
+}
+
 function posix(p: string): string {
   return p.split("\\").join("/");
 }
@@ -137,7 +145,7 @@ function tomlString(value: string): string {
 function generatedReadme(options: ResolvedAdapterOptions): string {
   return `# ${options.name}
 
-Generated Fastly Compute application for an Astro v6 site.
+Generated Fastly Compute application for an Astro v6/v7 site.
 Do not edit by hand — regenerated each \`astro build\`.
 
 ## How it fits

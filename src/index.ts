@@ -178,7 +178,11 @@ function getAdapter(opts: ResolvedAdapterOptions): AstroAdapter {
     exports: ["default", "handle", "createExports"],
     adapterFeatures: {
       buildOutput: "server",
+      // `edgeMiddleware` is deprecated in Astro v7 in favour of `middlewareMode`.
+      // Both are still read (v7 falls back to `edgeMiddleware` only when
+      // `middlewareMode` is unset), so send both for older v6 minors.
       edgeMiddleware: opts.experimental.edgeMiddleware,
+      middlewareMode: opts.experimental.edgeMiddleware ? "edge" : "classic",
     },
     supportedAstroFeatures: {
       serverOutput: "stable",
@@ -243,6 +247,13 @@ export default function fastlyComputeAdapter(
           "shims",
           "astro-encryption.js",
         );
+        const nodeStreamShim = join(
+          adapterRoot,
+          "dist",
+          "runtime",
+          "shims",
+          "node-stream.js",
+        );
 
         updateConfig({
           build: {
@@ -293,6 +304,16 @@ export default function fastlyComputeAdapter(
                 // SSR bundle only imports it for side effects — replace
                 // with a no-op shim.
                 { find: "es-module-lexer", replacement: esModuleLexerShim },
+                // Astro v7's Rolldown constant-folds `@astrojs/react`'s
+                // `import(nodeStreamBuiltinModuleName)` into a literal
+                // `import("node:stream")`, which js-compute-runtime's esbuild
+                // pass then fails to resolve ("Could not resolve node:stream").
+                // The Node fallback it guards is unreachable once
+                // `react-dom/server.edge` is in play — keep the graph
+                // resolvable with a shim that throws if it is ever entered.
+                // `node:stream/web` is deliberately not matched: that maps to
+                // web streams, which the platform provides.
+                { find: /^node:stream$/, replacement: nodeStreamShim },
               ],
             },
             plugins: [
@@ -306,6 +327,11 @@ export default function fastlyComputeAdapter(
               // we catch ALL paths to encryption.js (Astro uses relative
               // imports from many call sites, so resolve.alias misses them).
               astroEncryptionAliasPlugin(astroEncryptionShim),
+              // Redirect `import("node:stream")` at the source level. The
+              // renderer marks it `/* @vite-ignore */`, so resolve.alias never
+              // sees it and the literal reaches js-compute-runtime's esbuild
+              // pass, which fails the Wasm build.
+              nodeStreamDynamicImportPlugin(nodeStreamShim),
               // Fastly's runtime appears to surface an empty `s=` server-island
               // query param as a null-ish value in Astro's endpoint code,
               // which then gets treated as an encrypted slots payload and
@@ -387,6 +413,49 @@ function astroEncryptionAliasPlugin(shimAbsPath: string) {
         return { id: shimAbsPath };
       }
       return null;
+    },
+  };
+}
+
+/**
+ * Vite plugin that rewrites dynamic `import("node:stream")` calls in the SSR
+ * graph to a static reference to our shim.
+ *
+ * `@astrojs/react` writes this fallback as
+ * `await import(/* @vite-ignore *\/ nodeStreamBuiltinModuleName)`. Astro v7's
+ * Rolldown folds the variable away, leaving a literal specifier that
+ * js-compute-runtime's esbuild pass cannot resolve — and the `@vite-ignore`
+ * comment means `resolve.alias` never gets a look at it. Patching the source
+ * is the only hook left.
+ */
+function nodeStreamDynamicImportPlugin(shimAbsPath: string) {
+  const NAMESPACE = "__fastlyForAstroNodeStream";
+  const specifier = JSON.stringify(shimAbsPath.split("\\").join("/"));
+  const RESOLVED = `Promise.resolve(${NAMESPACE})`;
+
+  // `import(` + any number of comments/whitespace + specifier + optional
+  // trailing comma (dynamic import allows a second argument).
+  const importCall = (spec: string) =>
+    new RegExp(`\\bimport\\(\\s*(?:/\\*[\\s\\S]*?\\*/\\s*)*(?:${spec})\\s*,?\\s*\\)`, "g");
+  // The literal form, which is what the specifier folds down to.
+  const LITERAL_IMPORT = importCall(`["']node:stream["']`);
+  // The "hide the builtin from the bundler in a variable" form, which is how
+  // the renderer actually writes it.
+  const INDIRECT_SPECIFIER = /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*["']node:stream["']/g;
+
+  return {
+    name: "fastly-for-astro:node-stream-dynamic-import",
+    enforce: "pre" as const,
+    transform(code: string, id: string) {
+      if (id === shimAbsPath || !code.includes("node:stream")) return null;
+
+      let patched = code.replace(LITERAL_IMPORT, RESOLVED);
+      for (const [, name] of code.matchAll(INDIRECT_SPECIFIER)) {
+        if (name) patched = patched.replace(importCall(name), RESOLVED);
+      }
+      if (patched === code) return null;
+
+      return `import * as ${NAMESPACE} from ${specifier};\n${patched}`;
     },
   };
 }

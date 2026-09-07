@@ -12,7 +12,7 @@
 
 import { PublisherServer } from "@fastly/compute-js-static-publish";
 import rc from "../static-publish.rc.js";
-// AES-GCM polyfill: Astro v6 encrypts server-island props with AES-GCM, but
+// AES-GCM polyfill: Astro v6/v7 encrypt server-island props with AES-GCM, but
 // Fastly Compute's SubtleCrypto doesn't implement encrypt/decrypt. We install
 // at module init AND on every request — Fastly's runtime appears to re-bind
 // `crypto.subtle` after the Wizer snapshot is restored, so a one-shot install
